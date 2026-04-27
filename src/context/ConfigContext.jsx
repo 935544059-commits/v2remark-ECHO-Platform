@@ -12,8 +12,7 @@ const initialConfig = {
   },
   // API 配置
   apiConfig: {
-    queryFrequency: '1h',
-    apiType: 'dify',
+    platform: 'zhijia',
     apiName: '',
     apiUrl: '',
     apiDescription: '',
@@ -22,27 +21,17 @@ const initialConfig = {
     bearerToken: '',
     method: 'POST',
     headers: [{ key: 'Content-Type', value: 'application/json' }],
-    body: '{\n  "query": "{{USER_INPUT}}"\n}',
+    body: `{
+  "query": "{{USER_INPUT}}"
+}`,
     isStreaming: false,
   },
   // 入参配置
   inputParams: {
-    bodyTemplate: '{\n  "query": "{{USER_INPUT}}"\n}',
     businessParams: [],
   },
-  // 出参配置
-  outputVariables: [],
-  componentBindings: [],
-  // 渲染绑定
-  renderBindings: {
-    mainContent: '',
-    thoughtChain: '',
-    suggestions: ''
-  },
-  testResponse: null,
-  testError: null,
   // 配置状态
-  configStatus: 'incomplete', // 'incomplete' | 'tested' | 'complete'
+  configStatus: 'incomplete', // 'incomplete' | 'complete'
 };
 
 export function ConfigProvider({ children }) {
@@ -122,14 +111,6 @@ export function ConfigProvider({ children }) {
     }));
   }, []);
 
-  const updateBodyTemplate = useCallback((template) => {
-    setConfig(prev => ({
-      ...prev,
-      inputParams: { ...prev.inputParams, bodyTemplate: template },
-      apiConfig: { ...prev.apiConfig, body: template }
-    }));
-  }, []);
-
   const addBusinessParam = useCallback((param) => {
     setConfig(prev => ({
       ...prev,
@@ -162,64 +143,6 @@ export function ConfigProvider({ children }) {
     }));
   }, []);
 
-  const addOutputVariable = useCallback((variable) => {
-    setConfig(prev => ({
-      ...prev,
-      outputVariables: [...prev.outputVariables, variable]
-    }));
-  }, []);
-
-  const removeOutputVariable = useCallback((name) => {
-    setConfig(prev => ({
-      ...prev,
-      outputVariables: prev.outputVariables.filter(v => v.name !== name),
-      componentBindings: prev.componentBindings.filter(b => b.variableName !== name)
-    }));
-  }, []);
-
-  const addComponentBinding = useCallback((binding) => {
-    setConfig(prev => ({
-      ...prev,
-      componentBindings: [...prev.componentBindings.filter(b => b.componentType !== binding.componentType), binding]
-    }));
-  }, []);
-
-  const updateComponentBinding = useCallback((componentType, variableName) => {
-    setConfig(prev => ({
-      ...prev,
-      componentBindings: prev.componentBindings.map(b =>
-        b.componentType === componentType ? { ...b, variableName } : b
-      )
-    }));
-  }, []);
-
-  const reorderComponents = useCallback((newOrder) => {
-    setConfig(prev => ({
-      ...prev,
-      componentBindings: newOrder
-    }));
-  }, []);
-
-  const updateRenderBinding = useCallback((slotId, path) => {
-    setConfig(prev => ({
-      ...prev,
-      renderBindings: {
-        ...prev.renderBindings,
-        [slotId]: path
-      }
-    }));
-  }, []);
-
-  const setTestResponse = useCallback((response, error) => {
-    setConfig(prev => ({
-      ...prev,
-      testResponse: response,
-      testError: error,
-      // 根据测试结果更新配置状态
-      configStatus: response ? 'tested' : prev.configStatus
-    }));
-  }, []);
-
   const value = {
     config,
     isLoading,
@@ -232,17 +155,9 @@ export function ConfigProvider({ children }) {
     updateHeader,
     removeHeader,
     updateInputParams,
-    updateBodyTemplate,
     addBusinessParam,
     updateBusinessParam,
     removeBusinessParam,
-    addOutputVariable,
-    removeOutputVariable,
-    addComponentBinding,
-    updateComponentBinding,
-    reorderComponents,
-    updateRenderBinding,
-    setTestResponse,
     setConfigStatus: (status) => setConfig(prev => ({ ...prev, configStatus: status })),
   };
 

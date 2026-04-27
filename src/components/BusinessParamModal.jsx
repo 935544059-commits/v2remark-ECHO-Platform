@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Plus, Settings, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, Plus } from 'lucide-react';
 
 const UI_TYPES = [
   { value: 'input', label: '单行文本', icon: '📝' },
@@ -24,7 +24,6 @@ export default function BusinessParamModal({ isOpen, onClose, onSave, editIndex,
     step: 1,
   });
   const [newOption, setNewOption] = useState({ label: '', value: '' });
-  const [expandedSection, setExpandedSection] = useState('basic');
 
   if (!isOpen) return null;
 
@@ -34,7 +33,6 @@ export default function BusinessParamModal({ isOpen, onClose, onSave, editIndex,
       return;
     }
 
-    // 验证 key 格式（只能包含字母、数字、下划线）
     if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(formData.key)) {
       alert('变量标识只能包含字母、数字和下划线，且不能以数字开头');
       return;
@@ -103,24 +101,26 @@ export default function BusinessParamModal({ isOpen, onClose, onSave, editIndex,
                 </div>
               ))}
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={newOption.label}
-                onChange={(e) => setNewOption(prev => ({ ...prev, label: e.target.value }))}
-                placeholder="选项显示文本"
-                className="flex-1 text-sm border border-gray-300 rounded px-2 py-1"
-              />
-              <input
-                type="text"
-                value={newOption.value}
-                onChange={(e) => setNewOption(prev => ({ ...prev, value: e.target.value }))}
-                placeholder="选项值"
-                className="flex-1 text-sm border border-gray-300 rounded px-2 py-1"
-              />
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newOption.label}
+                  onChange={(e) => setNewOption(prev => ({ ...prev, label: e.target.value }))}
+                  placeholder="选项显示文本"
+                  className="flex-1 text-sm border border-gray-300 rounded px-2 py-1"
+                />
+                <input
+                  type="text"
+                  value={newOption.value}
+                  onChange={(e) => setNewOption(prev => ({ ...prev, value: e.target.value }))}
+                  placeholder="选项值"
+                  className="flex-1 text-sm border border-gray-300 rounded px-2 py-1"
+                />
+              </div>
               <button
                 onClick={handleAddOption}
-                className="flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-600 rounded text-sm hover:bg-blue-100"
+                className="flex items-center justify-center gap-1 px-3 py-1 bg-blue-50 text-blue-600 rounded text-sm hover:bg-blue-100 w-fit"
               >
                 <Plus className="w-3 h-3" />
                 添加
@@ -186,13 +186,133 @@ export default function BusinessParamModal({ isOpen, onClose, onSave, editIndex,
     }
   };
 
-  const toggleSection = (section) => {
-    setExpandedSection(expandedSection === section ? null : section);
+  const renderPreviewComponent = () => {
+    const { uiType, label, placeholder, required, defaultValue, options, min, max, step, key } = formData;
+
+    if (!label && !uiType) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-gray-400">
+          <div className="text-4xl mb-2">⏳</div>
+          <div className="text-sm">等待配置参数...</div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-700">
+            {required && <span className="text-red-500 mr-1">*</span>}
+            {label || '未设置标签'}
+          </label>
+
+          {uiType === 'input' && (
+            <input
+              type="text"
+              placeholder={placeholder || `请输入${label || ''}`}
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+              disabled
+            />
+          )}
+
+          {uiType === 'textarea' && (
+            <textarea
+              placeholder={placeholder || `请输入${label || ''}`}
+              defaultValue={defaultValue}
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm resize-none"
+              rows={3}
+              disabled
+            />
+          )}
+
+          {uiType === 'select' && (
+            <select
+              className="w-full border border-gray-300 rounded px-3 py-2 text-sm bg-white"
+              disabled
+            >
+              <option value="">请选择</option>
+              {options.map((opt, idx) => (
+                <option key={idx} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {uiType === 'switch' && (
+            <div className="flex items-center gap-2">
+              <div className="relative inline-block w-11 h-6">
+                <input
+                  type="checkbox"
+                  checked={defaultValue === true || defaultValue === 'true' || defaultValue === '1'}
+                  className="sr-only peer"
+                  disabled
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </div>
+              <span className="text-sm text-gray-600">
+                {defaultValue === true || defaultValue === 'true' || defaultValue === '1' ? '开启' : '关闭'}
+              </span>
+            </div>
+          )}
+
+          {uiType === 'slider' && (
+            <div className="space-y-2">
+              <input
+                type="range"
+                min={min}
+                max={max}
+                step={step}
+                defaultValue={defaultValue || min}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-not-allowed"
+                disabled
+              />
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>{min}</span>
+                <span>{max}</span>
+              </div>
+            </div>
+          )}
+
+          {uiType === 'number' && (
+            <div className="flex items-center gap-2">
+              <button
+                className="w-8 h-8 border border-gray-300 rounded flex items-center justify-center text-gray-600 bg-gray-50 cursor-not-allowed"
+                disabled
+              >
+                -
+              </button>
+              <input
+                type="number"
+                min={min}
+                max={max}
+                step={step}
+                defaultValue={defaultValue || min}
+                className="w-20 border border-gray-300 rounded px-2 py-1 text-sm text-center"
+                disabled
+              />
+              <button
+                className="w-8 h-8 border border-gray-300 rounded flex items-center justify-center text-gray-600 bg-gray-50 cursor-not-allowed"
+                disabled
+              >
+                +
+              </button>
+            </div>
+          )}
+        </div>
+
+        {key && (
+          <div className="text-xs text-gray-400">
+            变量名: {"{{"}{key}{"}}"}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         {/* 头部 */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-800">
@@ -203,129 +323,91 @@ export default function BusinessParamModal({ isOpen, onClose, onSave, editIndex,
           </button>
         </div>
 
-        {/* 内容区 - 可滚动 */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {/* 基础配置 */}
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
-            <button
-              onClick={() => toggleSection('basic')}
-              className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
-            >
-              <span className="text-sm font-medium text-gray-700">📋 基础配置</span>
-              {expandedSection === 'basic' ? (
-                <ChevronUp className="w-4 h-4 text-gray-500" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-gray-500" />
-              )}
-            </button>
-            {expandedSection === 'basic' && (
-              <div className="p-4 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    变量标识 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.key}
-                    onChange={(e) => setFormData(prev => ({ ...prev, key: e.target.value }))}
-                    placeholder="例如：style、max_tokens"
-                    className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">用于请求体占位符，如 {"{{style}}"}，只能包含字母、数字和下划线</p>
-                </div>
+        {/* 内容区 - 左右双栏布局 */}
+        <div className="flex-1 overflow-hidden flex">
+          {/* 左栏：配置区 */}
+          <div className="w-1/2 border-r border-gray-200 overflow-y-auto p-6">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  变量标识 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.key}
+                  onChange={(e) => setFormData(prev => ({ ...prev, key: e.target.value }))}
+                  placeholder="例如：style、max_tokens"
+                  className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">用于请求体占位符，如 {"{{"}style{"}}"}，只能包含字母、数字和下划线</p>
+                <p className="text-xs text-yellow-700 bg-yellow-50 p-2 rounded mt-1 flex items-start gap-1">
+                  <span className="text-yellow-500">⚠️</span>
+                  <span>注意：此标识需与第三方平台定义的 API 参数名保持完全一致，区分大小写，否则参数将无法正确传递。</span>
+                </p>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    显示文本 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.label}
-                    onChange={(e) => setFormData(prev => ({ ...prev, label: e.target.value }))}
-                    placeholder="例如：文案风格、最大 Token 数"
-                    className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">前端用户看到的名称</p>
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  显示文本 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.label}
+                  onChange={(e) => setFormData(prev => ({ ...prev, label: e.target.value }))}
+                  placeholder="例如：文案风格、最大 Token 数"
+                  className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">前端用户看到的名称</p>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    交互类型 <span className="text-red-500">*</span>
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {UI_TYPES.map((type) => (
-                      <button
-                        key={type.value}
-                        onClick={() => setFormData(prev => ({ ...prev, uiType: type.value }))}
-                        className={`p-3 rounded-lg border-2 transition-all text-sm ${
-                          formData.uiType === type.value
-                            ? 'border-blue-500 bg-blue-50 text-blue-700'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <div className="text-lg mb-1">{type.icon}</div>
-                        <div>{type.label}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="required"
-                    checked={formData.required}
-                    onChange={(e) => setFormData(prev => ({ ...prev, required: e.target.checked }))}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <label htmlFor="required" className="text-sm text-gray-700">
-                    必填项
-                  </label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  交互类型 <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {UI_TYPES.map((type) => (
+                    <button
+                      key={type.value}
+                      onClick={() => setFormData(prev => ({ ...prev, uiType: type.value }))}
+                      className={`p-3 rounded-lg border-2 transition-all text-sm ${
+                        formData.uiType === type.value
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="text-lg mb-1">{type.icon}</div>
+                      <div>{type.label}</div>
+                    </button>
+                  ))}
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* 数据约束 */}
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
-            <button
-              onClick={() => toggleSection('constraint')}
-              className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
-            >
-              <span className="text-sm font-medium text-gray-700">🔧 数据约束（{UI_TYPES.find(t => t.value === formData.uiType)?.label}）</span>
-              {expandedSection === 'constraint' ? (
-                <ChevronUp className="w-4 h-4 text-gray-500" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-gray-500" />
-              )}
-            </button>
-            {expandedSection === 'constraint' && (
-              <div className="p-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="required"
+                  checked={formData.required}
+                  onChange={(e) => setFormData(prev => ({ ...prev, required: e.target.checked }))}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <label htmlFor="required" className="text-sm text-gray-700">
+                  必填项
+                </label>
+              </div>
+
+              {/* 数据约束 */}
+              <div className="space-y-3">
                 {renderConstraintConfig()}
               </div>
-            )}
-          </div>
 
-          {/* 默认值 */}
-          <div className="border border-gray-200 rounded-lg overflow-hidden">
-            <button
-              onClick={() => toggleSection('default')}
-              className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
-            >
-              <span className="text-sm font-medium text-gray-700">⚙️ 默认值</span>
-              {expandedSection === 'default' ? (
-                <ChevronUp className="w-4 h-4 text-gray-500" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-gray-500" />
-              )}
-            </button>
-            {expandedSection === 'default' && (
-              <div className="p-4">
+              {/* 默认值 */}
+              <div className="space-y-3">
+                <div className="text-sm font-medium text-gray-700">默认值</div>
                 {formData.uiType === 'switch' ? (
                   <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      checked={formData.defaultValue}
+                      checked={formData.defaultValue === true || formData.defaultValue === 'true' || formData.defaultValue === '1'}
                       onChange={(e) => setFormData(prev => ({ ...prev, defaultValue: e.target.checked }))}
                       className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                     />
@@ -354,7 +436,15 @@ export default function BusinessParamModal({ isOpen, onClose, onSave, editIndex,
                   />
                 )}
               </div>
-            )}
+            </div>
+          </div>
+
+          {/* 右栏：预览区 */}
+          <div className="w-1/2 bg-gray-50 overflow-y-auto p-6">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">会话界面预览</h3>
+            <div className="bg-white rounded-lg border border-gray-200 p-4 min-h-[300px]">
+              {renderPreviewComponent()}
+            </div>
           </div>
         </div>
 
