@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useConfig } from '../context/ConfigContext';
-import { ChevronDown, Zap } from 'lucide-react';
+import { ChevronDown, Zap, HelpCircle } from 'lucide-react';
+import { Card, Slider, InputNumber, Tooltip } from 'antd';
 
 export default function ApiBasicConfig() {
   const { config, updateApiConfig } = useConfig();
@@ -120,6 +121,131 @@ export default function ApiBasicConfig() {
           />
         </div>
       </div>
+
+      {/* 会话截断策略 */}
+      <Card 
+        bordered 
+        className="border border-[#e8e8e8] rounded-[4px]"
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-1 h-6 bg-blue-500 rounded-sm"></div>
+          <h3 className="text-base font-bold text-[#333]">会话截断策略</h3>
+          <Tooltip title="为了保证会话性能和成本，当会话累计超过此限制时，系统将采取截断措施。">
+            <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+          </Tooltip>
+        </div>
+        
+        <div className="flex gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="truncationType"
+              value="token"
+              checked={config.apiConfig.truncationStrategy?.type === 'token'}
+              onChange={(e) => updateApiConfig({ 
+                truncationStrategy: { 
+                  ...config.apiConfig.truncationStrategy,
+                  type: 'token' 
+                } 
+              })}
+              className="radio-light"
+            />
+            <span className="text-sm text-gray-700">基于 Token 数</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              name="truncationType"
+              value="rounds"
+              checked={config.apiConfig.truncationStrategy?.type === 'rounds'}
+              onChange={(e) => updateApiConfig({ 
+                truncationStrategy: { 
+                  ...config.apiConfig.truncationStrategy,
+                  type: 'rounds' 
+                } 
+              })}
+              className="radio-light"
+            />
+            <span className="text-sm text-gray-700">基于会话轮数</span>
+          </label>
+        </div>
+
+        {config.apiConfig.truncationStrategy?.type === 'token' && (
+          <div className="flex items-center gap-4">
+            <Slider
+              min={2048}
+              max={32768}
+              step={1024}
+              value={config.apiConfig.truncationStrategy?.tokenLimit || 8192}
+              onChange={(value) => updateApiConfig({ 
+                truncationStrategy: { 
+                  ...config.apiConfig.truncationStrategy,
+                  tokenLimit: value
+                } 
+              })}
+              marks={{
+                2048: '2048',
+                8192: '8192',
+                16384: '16384',
+                32768: '32768'
+              }}
+              className="flex-1"
+            />
+            <InputNumber
+              min={2048}
+              max={32768}
+              step={1024}
+              value={config.apiConfig.truncationStrategy?.tokenLimit || 8192}
+              onChange={(value) => updateApiConfig({ 
+                truncationStrategy: { 
+                  ...config.apiConfig.truncationStrategy,
+                  tokenLimit: value
+                } 
+              })}
+              className="w-24"
+              suffix="Token"
+            />
+          </div>
+        )}
+
+        {config.apiConfig.truncationStrategy?.type === 'rounds' && (
+          <div className="flex items-center gap-4">
+            <Slider
+              min={5}
+              max={50}
+              step={1}
+              value={config.apiConfig.truncationStrategy?.roundsLimit || 15}
+              onChange={(value) => updateApiConfig({ 
+                truncationStrategy: { 
+                  ...config.apiConfig.truncationStrategy,
+                  roundsLimit: value
+                } 
+              })}
+              marks={{
+                5: '5',
+                15: '15',
+                30: '30',
+                50: '50'
+              }}
+              className="flex-1"
+            />
+            <InputNumber
+              min={5}
+              max={50}
+              step={1}
+              value={config.apiConfig.truncationStrategy?.roundsLimit || 15}
+              onChange={(value) => updateApiConfig({ 
+                truncationStrategy: { 
+                  ...config.apiConfig.truncationStrategy,
+                  roundsLimit: value
+                } 
+              })}
+              className="w-24"
+              suffix="轮"
+            />
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

@@ -25,6 +25,12 @@ const initialConfig = {
   "query": "{{USER_INPUT}}"
 }`,
     isStreaming: false,
+    // 会话截断策略
+    truncationStrategy: {
+      type: 'token',
+      tokenLimit: 8192,
+      roundsLimit: 15,
+    },
   },
   // 入参配置
   inputParams: {
