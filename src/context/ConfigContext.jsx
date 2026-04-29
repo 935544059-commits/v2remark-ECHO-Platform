@@ -32,13 +32,17 @@ const initialConfig = {
       roundsLimit: 15,
     },
   },
-  // 提示词模板配置
-  promptTemplate: {
-    title: '',
-    template: '',
-    variables: [],
-    previewValues: {},
-  },
+  // 提示词模板配置 - 支持多模板
+  templates: [
+    {
+      id: 1,
+      title: '需求文档编写',
+      template: '',
+      variables: [],
+      previewValues: {},
+    }
+  ],
+  currentTemplateIndex: 0,
   // 入参配置
   inputParams: {
     businessParams: [],
@@ -157,15 +161,25 @@ export function ConfigProvider({ children }) {
   }, []);
 
   const updatePromptTemplate = useCallback((updates) => {
-    setConfig(prev => ({
-      ...prev,
-      promptTemplate: { ...prev.promptTemplate, ...updates }
-    }));
+    setConfig(prev => {
+      const newTemplates = [...prev.templates];
+      newTemplates[prev.currentTemplateIndex] = {
+        ...newTemplates[prev.currentTemplateIndex],
+        ...updates
+      };
+      return {
+        ...prev,
+        templates: newTemplates
+      };
+    });
   }, []);
 
   const updatePromptVariable = useCallback((index, updates) => {
     setConfig(prev => {
-      const updatedVariables = prev.promptTemplate.variables.map((v, i) =>
+      const newTemplates = [...prev.templates];
+      const currentTemplate = { ...newTemplates[prev.currentTemplateIndex] };
+      
+      const updatedVariables = currentTemplate.variables.map((v, i) =>
         i === index ? { ...v, ...updates } : v
       );
       
@@ -173,61 +187,61 @@ export function ConfigProvider({ children }) {
         .map((v, idx) => ({ v, idx }))
         .filter(({ v }) => v.dependsOn === updatedVariables[index]?.name);
       
-      let newPreviewValues = { ...prev.promptTemplate.previewValues };
+      let newPreviewValues = { ...currentTemplate.previewValues };
       affectedVars.forEach(({ idx, v }) => {
         if (newPreviewValues[v.name]) {
           delete newPreviewValues[v.name];
         }
       });
 
-      return {
-        ...prev,
-        promptTemplate: {
-          ...prev.promptTemplate,
-          variables: updatedVariables,
-          previewValues: newPreviewValues,
-        }
-      };
+      currentTemplate.variables = updatedVariables;
+      currentTemplate.previewValues = newPreviewValues;
+      newTemplates[prev.currentTemplateIndex] = currentTemplate;
+      
+      return { ...prev, templates: newTemplates };
     });
   }, []);
 
   const addPromptVariable = useCallback((variable) => {
-    setConfig(prev => ({
-      ...prev,
-      promptTemplate: {
-        ...prev.promptTemplate,
-        variables: [...prev.promptTemplate.variables, variable]
-      }
-    }));
+    setConfig(prev => {
+      const newTemplates = [...prev.templates];
+      const currentTemplate = { ...newTemplates[prev.currentTemplateIndex] };
+      currentTemplate.variables = [...currentTemplate.variables, variable];
+      newTemplates[prev.currentTemplateIndex] = currentTemplate;
+      return { ...prev, templates: newTemplates };
+    });
   }, []);
 
   const removePromptVariable = useCallback((index) => {
     setConfig(prev => {
-      const removedVar = prev.promptTemplate.variables[index];
-      const affectedVars = prev.promptTemplate.variables
+      const newTemplates = [...prev.templates];
+      const currentTemplate = { ...newTemplates[prev.currentTemplateIndex] };
+      
+      const removedVar = currentTemplate.variables[index];
+      const affectedVars = currentTemplate.variables
         .filter((v, i) => i !== index && v.dependsOn === removedVar.name);
       
-      let newPreviewValues = { ...prev.promptTemplate.previewValues };
+      let newPreviewValues = { ...currentTemplate.previewValues };
       delete newPreviewValues[removedVar.name];
       affectedVars.forEach(v => {
         delete newPreviewValues[v.name];
       });
 
-      return {
-        ...prev,
-        promptTemplate: {
-          ...prev.promptTemplate,
-          variables: prev.promptTemplate.variables.filter((_, i) => i !== index),
-          previewValues: newPreviewValues,
-        }
-      };
+      currentTemplate.variables = currentTemplate.variables.filter((_, i) => i !== index);
+      currentTemplate.previewValues = newPreviewValues;
+      newTemplates[prev.currentTemplateIndex] = currentTemplate;
+      
+      return { ...prev, templates: newTemplates };
     });
   }, []);
 
   const updatePreviewValue = useCallback((variableName, value) => {
     setConfig(prev => {
-      const variable = prev.promptTemplate.variables.find(v => v.name === variableName);
-      let newPreviewValues = { ...prev.promptTemplate.previewValues, [variableName]: value };
+      const newTemplates = [...prev.templates];
+      const currentTemplate = { ...newTemplates[prev.currentTemplateIndex] };
+      
+      const variable = currentTemplate.variables.find(v => v.name === variableName);
+      let newPreviewValues = { ...currentTemplate.previewValues, [variableName]: value };
 
       if (variable?.dependsOn) {
         const parentValue = newPreviewValues[variable.dependsOn];
@@ -237,7 +251,7 @@ export function ConfigProvider({ children }) {
       }
 
       if (value) {
-        const affectedVars = prev.promptTemplate.variables.filter(
+        const affectedVars = currentTemplate.variables.filter(
           v => v.dependsOn === variableName
         );
         affectedVars.forEach(v => {
@@ -245,13 +259,54 @@ export function ConfigProvider({ children }) {
         });
       }
 
+      currentTemplate.previewValues = newPreviewValues;
+      newTemplates[prev.currentTemplateIndex] = currentTemplate;
+      
+      return { ...prev, templates: newTemplates };
+    });
+  }, []);
+
+  const addTemplate = useCallback(() => {
+    setConfig(prev => ({
+      ...prev,
+      templates: [...prev.templates, {
+        id: Date.now(),
+        title: '新模板',
+        template: '',
+        variables: [],
+        previewValues: {},
+      }],
+      currentTemplateIndex: prev.templates.length
+    }));
+  }, []);
+
+  const removeTemplate = useCallback((index) => {
+    setConfig(prev => {
+      const newTemplates = prev.templates.filter((_, i) => i !== index);
+      let newCurrentIndex = prev.currentTemplateIndex;
+      if (newCurrentIndex >= newTemplates.length) {
+        newCurrentIndex = Math.max(0, newTemplates.length - 1);
+      }
       return {
         ...prev,
-        promptTemplate: {
-          ...prev.promptTemplate,
-          previewValues: newPreviewValues,
-        }
+        templates: newTemplates,
+        currentTemplateIndex: newCurrentIndex
       };
+    });
+  }, []);
+
+  const switchTemplate = useCallback((index) => {
+    setConfig(prev => ({
+      ...prev,
+      currentTemplateIndex: index
+    }));
+  }, []);
+
+  const updateTemplateTitle = useCallback((index, title) => {
+    setConfig(prev => {
+      const newTemplates = [...prev.templates];
+      newTemplates[index] = { ...newTemplates[index], title };
+      return { ...prev, templates: newTemplates };
     });
   }, []);
 
@@ -275,6 +330,10 @@ export function ConfigProvider({ children }) {
       addPromptVariable,
       removePromptVariable,
       updatePreviewValue,
+      addTemplate,
+      removeTemplate,
+      switchTemplate,
+      updateTemplateTitle,
       setConfigStatus: (status) => setConfig(prev => ({ ...prev, configStatus: status })),
     };
 
