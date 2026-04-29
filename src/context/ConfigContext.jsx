@@ -32,6 +32,13 @@ const initialConfig = {
       roundsLimit: 15,
     },
   },
+  // 提示词模板配置
+  promptTemplate: {
+    title: '',
+    template: '',
+    variables: [],
+    previewValues: {},
+  },
   // 入参配置
   inputParams: {
     businessParams: [],
@@ -149,6 +156,105 @@ export function ConfigProvider({ children }) {
     }));
   }, []);
 
+  const updatePromptTemplate = useCallback((updates) => {
+    setConfig(prev => ({
+      ...prev,
+      promptTemplate: { ...prev.promptTemplate, ...updates }
+    }));
+  }, []);
+
+  const updatePromptVariable = useCallback((index, updates) => {
+    setConfig(prev => {
+      const updatedVariables = prev.promptTemplate.variables.map((v, i) =>
+        i === index ? { ...v, ...updates } : v
+      );
+      
+      const affectedVars = updatedVariables
+        .map((v, idx) => ({ v, idx }))
+        .filter(({ v }) => v.dependsOn === updatedVariables[index]?.name);
+      
+      let newPreviewValues = { ...prev.promptTemplate.previewValues };
+      affectedVars.forEach(({ idx, v }) => {
+        if (newPreviewValues[v.name]) {
+          delete newPreviewValues[v.name];
+        }
+      });
+
+      return {
+        ...prev,
+        promptTemplate: {
+          ...prev.promptTemplate,
+          variables: updatedVariables,
+          previewValues: newPreviewValues,
+        }
+      };
+    });
+  }, []);
+
+  const addPromptVariable = useCallback((variable) => {
+    setConfig(prev => ({
+      ...prev,
+      promptTemplate: {
+        ...prev.promptTemplate,
+        variables: [...prev.promptTemplate.variables, variable]
+      }
+    }));
+  }, []);
+
+  const removePromptVariable = useCallback((index) => {
+    setConfig(prev => {
+      const removedVar = prev.promptTemplate.variables[index];
+      const affectedVars = prev.promptTemplate.variables
+        .filter((v, i) => i !== index && v.dependsOn === removedVar.name);
+      
+      let newPreviewValues = { ...prev.promptTemplate.previewValues };
+      delete newPreviewValues[removedVar.name];
+      affectedVars.forEach(v => {
+        delete newPreviewValues[v.name];
+      });
+
+      return {
+        ...prev,
+        promptTemplate: {
+          ...prev.promptTemplate,
+          variables: prev.promptTemplate.variables.filter((_, i) => i !== index),
+          previewValues: newPreviewValues,
+        }
+      };
+    });
+  }, []);
+
+  const updatePreviewValue = useCallback((variableName, value) => {
+    setConfig(prev => {
+      const variable = prev.promptTemplate.variables.find(v => v.name === variableName);
+      let newPreviewValues = { ...prev.promptTemplate.previewValues, [variableName]: value };
+
+      if (variable?.dependsOn) {
+        const parentValue = newPreviewValues[variable.dependsOn];
+        if (!parentValue) {
+          delete newPreviewValues[variableName];
+        }
+      }
+
+      if (value) {
+        const affectedVars = prev.promptTemplate.variables.filter(
+          v => v.dependsOn === variableName
+        );
+        affectedVars.forEach(v => {
+          delete newPreviewValues[v.name];
+        });
+      }
+
+      return {
+        ...prev,
+        promptTemplate: {
+          ...prev.promptTemplate,
+          previewValues: newPreviewValues,
+        }
+      };
+    });
+  }, []);
+
   const value = {
     config,
     isLoading,
@@ -164,8 +270,13 @@ export function ConfigProvider({ children }) {
     addBusinessParam,
     updateBusinessParam,
     removeBusinessParam,
-    setConfigStatus: (status) => setConfig(prev => ({ ...prev, configStatus: status })),
-  };
+    updatePromptTemplate,
+      updatePromptVariable,
+      addPromptVariable,
+      removePromptVariable,
+      updatePreviewValue,
+      setConfigStatus: (status) => setConfig(prev => ({ ...prev, configStatus: status })),
+    };
 
   return (
     <ConfigContext.Provider value={value}>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ConfigProvider, useConfig } from './context/ConfigContext';
 import AgentInfoPanel from './components/AgentInfoPanel';
 import ApiBasicConfig from './components/ApiBasicConfig';
+import PromptTemplateConfig from './components/PromptTemplateConfig';
 import InputParamsConfig from './components/InputParamsConfig';
 import { ArrowLeft, Save, CheckCircle, AlertCircle, Send } from 'lucide-react';
 
@@ -154,6 +155,9 @@ function AppContent() {
             </div>
             {!isApiBasicConfigCollapsed && <ApiBasicConfig />}
           </div>
+
+          {/* 提示词模板配置 */}
+          <PromptTemplateConfig />
 
           {/* 入参动态构建 - 水平分栏 */}
           <InputParamsConfig />
