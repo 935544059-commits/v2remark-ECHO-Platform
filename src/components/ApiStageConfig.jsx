@@ -309,7 +309,7 @@ const ApiStageConfig = ({
                       <Option value="file">File</Option>
                       <Option value="object">Object</Option>
                       <Option value="array">Array</Option>
-                      <Option value="array_file">Array<File></Option>
+                      <Option value="array_file">Array{"<"}File{">"}</Option>
                     </Select>
                   </div>
                   <div>
@@ -394,7 +394,7 @@ const ApiStageConfig = ({
                                 <Option value="file">File</Option>
                                 <Option value="object">Object</Option>
                                 <Option value="array">Array</Option>
-                                <Option value="array_file">Array<File></Option>
+                                <Option value="array_file">Array{"<"}File{">"}</Option>
                               </Select>
                             </div>
                             <div>
